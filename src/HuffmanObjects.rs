@@ -3,7 +3,6 @@ use std::cmp::Ordering;
 use std::fmt;
 use std::io::{Cursor, Write, Read, Result, Seek, SeekFrom};
 
-use crate::Codec::CodecList;
 use crate::Codec::CodecFunctions;
 use crate::DetHashMap;
 
@@ -135,23 +134,24 @@ impl HuffmanEncoder
         return frequencies;
     }
 
-    pub fn build_from_frequencies(frequencies: &DetHashMap<u8, usize>) -> Self 
+    pub fn new(frequencies: &DetHashMap<u8, usize>) -> Self 
     {
-        let mut tree = HuffmanEncoder{ root: None, tree: BinaryHeap::<HuffmanTreeItem>::new(), nodes: Vec::<Box<HuffmanNode>>::new(), };
+        let mut tree: BinaryHeap<HuffmanTreeItem> = BinaryHeap::<HuffmanTreeItem>::new();
+        let mut nodes: Vec<Box<HuffmanNode>> = Vec::<Box<HuffmanNode>>::new();
 
         // Step 1: Adds leaf nodes into the heap
         for (&byte, &freq) in frequencies.iter() 
         {
             let leaf = Box::new(HuffmanNode::Leaf { byte, freq });
-            tree.tree.push(HuffmanTreeItem(freq, leaf));
+            tree.push(HuffmanTreeItem(freq, leaf));
         }
 
         // Step 2: Builds tree combining nodes
-        while tree.tree.len() > 1 
+        while tree.len() > 1 
         {
             // Extracts nodes with lowest frequencies
-            let HuffmanTreeItem(freq1, left) = tree.tree.pop().unwrap();
-            let HuffmanTreeItem(freq2, right) = tree.tree.pop().unwrap();
+            let HuffmanTreeItem(freq1, left) = tree.pop().unwrap();
+            let HuffmanTreeItem(freq2, right) = tree.pop().unwrap();
 
             // Creates intern node with the sum of frequencies
             let internal_freq = freq1 + freq2;
@@ -166,12 +166,13 @@ impl HuffmanEncoder
             );
 
             // Inserts new intern node
-            tree.tree.push(HuffmanTreeItem(internal_freq, internal_node));
+            tree.push(HuffmanTreeItem(internal_freq, internal_node));
         }
         
-        let HuffmanTreeItem(_freq, root_node) = tree.tree.pop().unwrap();
-        tree.root = Some(root_node);
-        return tree;
+        let HuffmanTreeItem(_freq, root_node) = tree.pop().unwrap();
+        let root: Option<Box<HuffmanNode>> = Some(root_node);
+        
+        return HuffmanEncoder { root, tree, nodes, };
     }
 
     fn generate_codes(&self) -> DetHashMap<u8, Vec<bool>> 
@@ -375,7 +376,7 @@ impl CodecFunctions for HuffmanEncoder
     {
         let original_len = data.len();
         let frequencies: DetHashMap<u8, usize> = Self::obtain_frequencies(&data);
-        let mut freqTree: Self = Self::build_from_frequencies(&frequencies);
+        let mut freqTree: Self = Self::new(&frequencies);
         let (codes, encoded_data) = freqTree.encode_data(&data);
 
         return Self::write_to_buffer(&codes, &encoded_data, original_len);

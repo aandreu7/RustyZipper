@@ -77,6 +77,7 @@ pub fn check_entry() -> Option<(String, String, Option<Vec<u8>>)>
                     match arg.as_str()
                     {
                         "--huffman" => { codecs.push(CodecList::Huffman as u8); }
+                        "--rle" => { codecs.push(CodecList::RLE as u8); }
                         _ =>
                         {
                             eprintln!("Incorrect codec: {}", arg);

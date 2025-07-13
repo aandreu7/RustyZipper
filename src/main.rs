@@ -5,10 +5,12 @@ use fnv::FnvHasher;
 use std::convert::TryFrom;
 
 pub mod HuffmanObjects;
+pub mod RLEObjects;
 pub mod Codec;
 pub mod EnvHandling;
 
 use crate::HuffmanObjects::HuffmanEncoder;
+use crate::RLEObjects::RLEEncoder;
 
 use crate::Codec::CodecList;
 use crate::Codec::CodecFunctions;
@@ -38,6 +40,18 @@ fn encode_file(filepath: &str, codecs: &[u8]) -> io::Result<()>
                         match HuffmanEncoder::encode(&global_buffer)
                         {
                             Ok(huffman_encoded_data) => { global_buffer = huffman_encoded_data; }
+                            Err(e) => 
+                            {
+                                eprintln!("An error occurred while encoding file with Huffman: {}", e);
+                                return Err(e);
+                            }
+                        }
+                    }
+                    CodecList::RLE =>
+                    {
+                        match RLEEncoder::encode(&global_buffer)
+                        {
+                            Ok(rle_encoded_data) => { global_buffer = rle_encoded_data; }
                             Err(e) => 
                             {
                                 eprintln!("An error occurred while encoding file with Huffman: {}", e);
@@ -100,6 +114,7 @@ fn decode_file(filepath: &str) -> std::io::Result<()>
 
                 let current_codec: CodecList = CodecList::try_from(codec_byte)
                     .map_err(|_| Error::new(ErrorKind::InvalidData, "Invalid codec found"))?;
+
                 match current_codec 
                 {
                     CodecList::Huffman => 
@@ -109,6 +124,22 @@ fn decode_file(filepath: &str) -> std::io::Result<()>
                             Ok(huffman_decoded_data) => 
                             { 
                                 global_buffer = huffman_decoded_data;
+                                current_byte = 0;
+                            }
+                            Err(e) => 
+                            {
+                                eprintln!("An error occurred while decoding file: {}", e);
+                                return Err(e);
+                            }
+                        }
+                    }
+                    CodecList::RLE =>
+                    {
+                        match RLEEncoder::decode(&subbuffer.to_vec())
+                        {
+                            Ok(rle_decoded_data) =>
+                            {
+                                global_buffer = rle_decoded_data;
                                 current_byte = 0;
                             }
                             Err(e) => 
