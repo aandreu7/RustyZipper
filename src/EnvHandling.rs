@@ -81,6 +81,7 @@ pub fn check_entry() -> Option<(String, String, Option<Vec<u8>>, Option<Vec<i64>
                         let key: i64 = arg.parse().expect("Bad argument: expected number.");
                         keys.push(key)
                         key_needed = false;
+                        continue;
                     }
                     match arg.as_str()
                     {
@@ -88,8 +89,9 @@ pub fn check_entry() -> Option<(String, String, Option<Vec<u8>>, Option<Vec<i64>
                         "--rle" => { codecs.push(CodecList::RLE as u8); }
                         "--caesar" => 
                         { 
-                            codecs.push(CodecList::Caesar as u8); }
+                            codecs.push(CodecList::Caesar as u8);
                             key_needed = true;
+                        }
                         _ =>
                         {
                             eprintln!("Incorrect codec: {}", arg);

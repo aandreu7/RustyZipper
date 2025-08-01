@@ -219,18 +219,18 @@ fn main() -> io::Result<()>
     {
         Some((mode, filepath, codecs, keys)) => 
         {   
-            if mode == "-e" 
+            if let Some(keys_vec) = keys.as_ref()
             {
-                if let Some(codecs_vec) = codecs.as_ref() { encode_file(&filepath, codecs_vec, keys_vec); } 
-                else 
+                if mode == "-e" 
                 {
-                    eprintln!("No codecs specified for encoding");
-                    std::process::exit(1);
+                    if let Some(codecs_vec) = codecs.as_ref() { encode_file(&filepath, codecs_vec, keys_vec); }
+                    else 
+                    {
+                        eprintln!("No codecs specified for encoding");
+                        std::process::exit(1);
+                    }
                 }
-            }
-            else if mode == "-d" 
-            { 
-                decode_file(&filepath, keys_vec);
+                else if mode == "-d" { decode_file(&filepath, keys_vec); }
             }
             else { std::process::exit(1); }
 
