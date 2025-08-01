@@ -7,6 +7,7 @@ pub enum CodecList
     RustyZipper,
     Huffman,
     RLE,
+    Caesar,
     LZ77,
     Arithmetic,
 }

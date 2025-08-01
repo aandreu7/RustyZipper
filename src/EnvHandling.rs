@@ -53,7 +53,7 @@ pub fn validate_encoded_file(first_byte: u8) -> std::io::Result<()>
     return Ok(());
 }
 
-pub fn check_entry() -> Option<(String, String, Option<Vec<u8>>)> 
+pub fn check_entry() -> Option<(String, String, Option<Vec<u8>>, Option<Vec<i64>>)> 
 {
     let args: Vec<String> = env::args().collect();
 
@@ -67,6 +67,8 @@ pub fn check_entry() -> Option<(String, String, Option<Vec<u8>>)>
             "-e" => 
             {
                 let mut codecs: Vec<u8> = Vec::new();
+                let mut keys: Vec<i64> = Vec::new();
+                let mut key_needed: bool = false;
                 if args.len() == 3
                 {
                     eprintln!("Incorrect use. Indicate desired codecs after -e");
@@ -74,10 +76,20 @@ pub fn check_entry() -> Option<(String, String, Option<Vec<u8>>)>
                 } 
                 for arg in &args[2..args.len()-1]
                 {
+                    if key_needed
+                    {
+                        let key: i64 = arg.parse().expect("Bad argument: expected number.");
+                        keys.push(key)
+                        key_needed = false;
+                    }
                     match arg.as_str()
                     {
                         "--huffman" => { codecs.push(CodecList::Huffman as u8); }
                         "--rle" => { codecs.push(CodecList::RLE as u8); }
+                        "--caesar" => 
+                        { 
+                            codecs.push(CodecList::Caesar as u8); }
+                            key_needed = true;
                         _ =>
                         {
                             eprintln!("Incorrect codec: {}", arg);
@@ -85,7 +97,7 @@ pub fn check_entry() -> Option<(String, String, Option<Vec<u8>>)>
                         }
                     }
                 }
-                return Some((mode.clone(), filepath.clone(), Some(codecs)));
+                return Some((mode.clone(), filepath.clone(), Some(codecs), Some(keys)));
             }
             "-d" => { if args.len() == 3 { return Some((mode.clone(), filepath.clone(), None)); } }
             _ => {}

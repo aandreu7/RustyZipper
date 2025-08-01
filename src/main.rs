@@ -11,6 +11,7 @@ pub mod EnvHandling;
 
 use crate::HuffmanObjects::HuffmanEncoder;
 use crate::RLEObjects::RLEEncoder;
+use crate::CaesarObjects::CaesarEncoder;
 
 use crate::Codec::CodecList;
 use crate::Codec::CodecFunctions;
@@ -22,12 +23,13 @@ use crate::EnvHandling::validate_encoded_file;
 
 pub type DetHashMap<K, V> = HashMap<K, V, BuildHasherDefault<FnvHasher>>;
 
-fn encode_file(filepath: &str, codecs: &[u8]) -> io::Result<()> 
+fn encode_file(filepath: &str, codecs: &[u8], keys: &[i64]) -> io::Result<()> 
 {
     match read_file(filepath)
     {
         Ok((mut global_buffer, original_len)) =>
         {
+            let mut i_current_key: usize = 0;
             for &codec_byte in codecs
             {
                 let current_codec: CodecList = CodecList::try_from(codec_byte)
@@ -54,7 +56,24 @@ fn encode_file(filepath: &str, codecs: &[u8]) -> io::Result<()>
                             Ok(rle_encoded_data) => { global_buffer = rle_encoded_data; }
                             Err(e) => 
                             {
-                                eprintln!("An error occurred while encoding file with Huffman: {}", e);
+                                eprintln!("An error occurred while encoding file with RLE: {}", e);
+                                return Err(e);
+                            }
+                        }
+                    }
+                    CodecList::Caesar =>
+                    {
+
+                        match CaesarEncoder::encode(&global_buffer, keys[i_current_key])
+                        {
+                            Ok(caesar_encoded_data) => 
+                            { 
+                                global_buffer = caesar_encoded_data;
+                                i_current_key += 1;
+                            }
+                            Err(e) =>
+                            {
+                                eprintln!("An error occurred while encoding file with Caesar: {}", e);
                                 return Err(e);
                             }
                         }
@@ -82,7 +101,7 @@ fn encode_file(filepath: &str, codecs: &[u8]) -> io::Result<()>
     }
 }
 
-fn decode_file(filepath: &str) -> std::io::Result<()>
+fn decode_file(filepath: &str, keys: &[i64]) -> std::io::Result<()>
 {
     match read_file(filepath) 
     {
@@ -108,6 +127,7 @@ fn decode_file(filepath: &str) -> std::io::Result<()>
 
             current_byte += codecs_len;
 
+            let mut i_current_key: usize = 0;
             for codec_byte in codecs
             {
                 let subbuffer = &global_buffer[current_byte..];
@@ -128,7 +148,7 @@ fn decode_file(filepath: &str) -> std::io::Result<()>
                             }
                             Err(e) => 
                             {
-                                eprintln!("An error occurred while decoding file: {}", e);
+                                eprintln!("An error occurred while decoding file with Huffman: {}", e);
                                 return Err(e);
                             }
                         }
@@ -144,7 +164,24 @@ fn decode_file(filepath: &str) -> std::io::Result<()>
                             }
                             Err(e) => 
                             {
-                                eprintln!("An error occurred while decoding file: {}", e);
+                                eprintln!("An error occurred while decoding file with RLE: {}", e);
+                                return Err(e);
+                            }
+                        }
+                    }
+                    CodecList::Caesar =>
+                    {
+                        match CaesarEncoder::decode(&subbuffer.to_vec(), keys[i_current_key])
+                        {
+                            Ok(caesar_decoded_data) =>
+                            {
+                                global_buffer = caesar_decoded_data;
+                                current_byte = 0;
+                                i_current_key += 1;
+                            }
+                            Err(e) => 
+                            {
+                                eprintln!("An error occurred while decoding file with Caesar: {}", e);
                                 return Err(e);
                             }
                         }
@@ -180,18 +217,21 @@ fn main() -> io::Result<()>
 {
     match EnvHandling::check_entry()
     {
-        Some((mode, filepath, codecs)) => 
+        Some((mode, filepath, codecs, keys)) => 
         {   
             if mode == "-e" 
             {
-                if let Some(codecs_vec) = codecs.as_ref() { encode_file(&filepath, codecs_vec); } 
+                if let Some(codecs_vec) = codecs.as_ref() { encode_file(&filepath, codecs_vec, keys_vec); } 
                 else 
                 {
                     eprintln!("No codecs specified for encoding");
                     std::process::exit(1);
                 }
             }
-            else if mode == "-d" { decode_file(&filepath); }
+            else if mode == "-d" 
+            { 
+                decode_file(&filepath, keys_vec);
+            }
             else { std::process::exit(1); }
 
             return Ok(());
