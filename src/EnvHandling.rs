@@ -62,12 +62,13 @@ pub fn check_entry() -> Option<(String, String, Option<Vec<u8>>, Option<Vec<i64>
         let mode: &String = &args[1];
         let filepath: &String = &args[args.len()-1];
 
+        let mut keys: Vec<i64> = Vec::new();
+
         match mode.as_str()
         {
             "-e" => 
             {
                 let mut codecs: Vec<u8> = Vec::new();
-                let mut keys: Vec<i64> = Vec::new();
                 let mut key_needed: bool = false;
                 if args.len() == 3
                 {
@@ -79,7 +80,7 @@ pub fn check_entry() -> Option<(String, String, Option<Vec<u8>>, Option<Vec<i64>
                     if key_needed
                     {
                         let key: i64 = arg.parse().expect("Bad argument: expected number.");
-                        keys.push(key)
+                        keys.push(key);
                         key_needed = false;
                         continue;
                     }
@@ -101,7 +102,15 @@ pub fn check_entry() -> Option<(String, String, Option<Vec<u8>>, Option<Vec<i64>
                 }
                 return Some((mode.clone(), filepath.clone(), Some(codecs), Some(keys)));
             }
-            "-d" => { if args.len() == 3 { return Some((mode.clone(), filepath.clone(), None)); } }
+            "-d" => 
+            { 
+                for arg in &args[2..args.len()-1]
+                {
+                    let key: i64 = arg.parse().expect("Bad argument: expected number.");
+                    keys.push(key);
+                }
+                return Some((mode.clone(), filepath.clone(), None, Some(keys)));
+            }
             _ => {}
         }
     }

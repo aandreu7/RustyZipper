@@ -14,6 +14,6 @@ pub enum CodecList
 
 pub trait CodecFunctions
 {
-    fn encode(data: &Vec<u8>) -> std::io::Result<Vec<u8>>;
-    fn decode(encoded_data: &Vec<u8>) -> std::io::Result<Vec<u8>>;
+    fn encode(data: &Vec<u8>, key: Option<&i64>) -> std::io::Result<Vec<u8>>;
+    fn decode(encoded_data: &Vec<u8>, key: Option<&i64>) -> std::io::Result<Vec<u8>>;
 }

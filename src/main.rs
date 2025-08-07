@@ -6,6 +6,7 @@ use std::convert::TryFrom;
 
 pub mod HuffmanObjects;
 pub mod RLEObjects;
+pub mod CaesarObjects;
 pub mod Codec;
 pub mod EnvHandling;
 
@@ -39,7 +40,7 @@ fn encode_file(filepath: &str, codecs: &[u8], keys: &[i64]) -> io::Result<()>
                 {
                     CodecList::Huffman => 
                     {
-                        match HuffmanEncoder::encode(&global_buffer)
+                        match HuffmanEncoder::encode(&global_buffer, None)
                         {
                             Ok(huffman_encoded_data) => { global_buffer = huffman_encoded_data; }
                             Err(e) => 
@@ -51,7 +52,7 @@ fn encode_file(filepath: &str, codecs: &[u8], keys: &[i64]) -> io::Result<()>
                     }
                     CodecList::RLE =>
                     {
-                        match RLEEncoder::encode(&global_buffer)
+                        match RLEEncoder::encode(&global_buffer, None)
                         {
                             Ok(rle_encoded_data) => { global_buffer = rle_encoded_data; }
                             Err(e) => 
@@ -64,7 +65,7 @@ fn encode_file(filepath: &str, codecs: &[u8], keys: &[i64]) -> io::Result<()>
                     CodecList::Caesar =>
                     {
 
-                        match CaesarEncoder::encode(&global_buffer, keys[i_current_key])
+                        match CaesarEncoder::encode(&global_buffer, Some(&keys[i_current_key]))
                         {
                             Ok(caesar_encoded_data) => 
                             { 
@@ -139,7 +140,7 @@ fn decode_file(filepath: &str, keys: &[i64]) -> std::io::Result<()>
                 {
                     CodecList::Huffman => 
                     { 
-                        match HuffmanEncoder::decode(&subbuffer.to_vec())
+                        match HuffmanEncoder::decode(&subbuffer.to_vec(), None)
                         {
                             Ok(huffman_decoded_data) => 
                             { 
@@ -155,7 +156,7 @@ fn decode_file(filepath: &str, keys: &[i64]) -> std::io::Result<()>
                     }
                     CodecList::RLE =>
                     {
-                        match RLEEncoder::decode(&subbuffer.to_vec())
+                        match RLEEncoder::decode(&subbuffer.to_vec(), None)
                         {
                             Ok(rle_decoded_data) =>
                             {
@@ -171,7 +172,7 @@ fn decode_file(filepath: &str, keys: &[i64]) -> std::io::Result<()>
                     }
                     CodecList::Caesar =>
                     {
-                        match CaesarEncoder::decode(&subbuffer.to_vec(), keys[i_current_key])
+                        match CaesarEncoder::decode(&subbuffer.to_vec(), Some(&keys[i_current_key]))
                         {
                             Ok(caesar_decoded_data) =>
                             {

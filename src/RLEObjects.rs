@@ -62,13 +62,13 @@ impl RLEEncoder
 
 impl CodecFunctions for RLEEncoder
 {
-    fn encode(data: &Vec<u8>) -> std::io::Result<Vec<u8>>
+    fn encode(data: &Vec<u8>, _: Option<&i64>) -> std::io::Result<Vec<u8>>
     {
         let mut rle: RLEEncoder = RLEEncoder::new_from_buffer(data);
         return Ok(rle.serialize_rle());
     }
 
-    fn decode(encoded_data: &Vec<u8>) -> std::io::Result<Vec<u8>>
+    fn decode(encoded_data: &Vec<u8>, _: Option<&i64>) -> std::io::Result<Vec<u8>>
     {
         let mut rle: RLEEncoder = RLEEncoder::new();
         rle.deserialize_rle(encoded_data);

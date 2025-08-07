@@ -372,7 +372,7 @@ impl HuffmanEncoder
 
 impl CodecFunctions for HuffmanEncoder
 {
-    fn encode(data: &Vec<u8>) -> std::io::Result<Vec<u8>>
+    fn encode(data: &Vec<u8>, _: Option<&i64>) -> std::io::Result<Vec<u8>>
     {
         let original_len = data.len();
         let frequencies: DetHashMap<u8, usize> = Self::obtain_frequencies(&data);
@@ -382,7 +382,7 @@ impl CodecFunctions for HuffmanEncoder
         return Self::write_to_buffer(&codes, &encoded_data, original_len);
     }
 
-    fn decode(encoded_data: &Vec<u8>) -> std::io::Result<Vec<u8>>
+    fn decode(encoded_data: &Vec<u8>, _: Option<&i64>) -> std::io::Result<Vec<u8>>
     {
         match Self::read_from_buffer(encoded_data)
         {
