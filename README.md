@@ -35,7 +35,7 @@ RustyZipper -e [ codec/cypher (cypher key) ] <file_path>
 RustyZipper -d [ (cypher key) ] <file_path>
 ```
 
-Cypher keys must be specified in the same order in encrypting and decrypting, although these operations are inverse. See examples for a further understanding of this.
+Cypher keys must be specified in the same order for encrypting and decrypting, although these operations are inverse. See examples for a further understanding of this.
 
 ### Examples
 
