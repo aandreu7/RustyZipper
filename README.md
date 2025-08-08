@@ -19,7 +19,7 @@ A powerful command-line file compression and encryption tool written in Rust. Ru
 
 ### Build from Source
 ```bash
-git clone https://github.com/yourusername/RustyZipper.git
+git clone https://github.com/aandreu7/RustyZipper.git
 cd RustyZipper
 cargo build --release
 ```
