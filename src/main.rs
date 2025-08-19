@@ -7,12 +7,15 @@ use std::convert::TryFrom;
 pub mod HuffmanObjects;
 pub mod RLEObjects;
 pub mod CaesarObjects;
+pub mod AESObjects;
 pub mod Codec;
 pub mod EnvHandling;
+pub mod HashHandling;
 
 use crate::HuffmanObjects::HuffmanEncoder;
 use crate::RLEObjects::RLEEncoder;
 use crate::CaesarObjects::CaesarEncoder;
+use crate::AESObjects::AESEncoder;
 
 use crate::Codec::CodecList;
 use crate::Codec::CodecFunctions;
@@ -24,7 +27,11 @@ use crate::EnvHandling::validate_encoded_file;
 
 pub type DetHashMap<K, V> = HashMap<K, V, BuildHasherDefault<FnvHasher>>;
 
-fn encode_file(filepath: &str, codecs: &[u8], keys: &[i64]) -> io::Result<()> 
+pub type RZ_KEY_TYPE = i128;
+pub const KEY_LENGTH_BYTES: usize = 16;
+pub const KEY_LENGTH_BITS: usize = KEY_LENGTH_BYTES * 8;
+
+fn encode_file(filepath: &str, codecs: &[u8], keys: &[RZ_KEY_TYPE]) -> io::Result<()> 
 {
     match read_file(filepath)
     {
@@ -79,6 +86,22 @@ fn encode_file(filepath: &str, codecs: &[u8], keys: &[i64]) -> io::Result<()>
                             }
                         }
                     }
+                    CodecList::AES =>
+                    {
+                        match AESEncoder::encode(&global_buffer, Some(&keys[i_current_key]))
+                        {
+                            Ok(aes_encoded_data) => 
+                            { 
+                                global_buffer = aes_encoded_data;
+                                i_current_key += 1;
+                            }
+                            Err(e) =>
+                            {
+                                eprintln!("An error occurred while encoding file with AES: {}", e);
+                                return Err(e);
+                            }
+                        }
+                    }
                     _ => { return Err(Error::new(ErrorKind::InvalidData, "Invalid codec found")); }
                 }
             }
@@ -102,7 +125,7 @@ fn encode_file(filepath: &str, codecs: &[u8], keys: &[i64]) -> io::Result<()>
     }
 }
 
-fn decode_file(filepath: &str, keys: &[i64]) -> std::io::Result<()>
+fn decode_file(filepath: &str, keys: &[RZ_KEY_TYPE]) -> std::io::Result<()>
 {
     match read_file(filepath) 
     {
@@ -183,6 +206,23 @@ fn decode_file(filepath: &str, keys: &[i64]) -> std::io::Result<()>
                             Err(e) => 
                             {
                                 eprintln!("An error occurred while decoding file with Caesar: {}", e);
+                                return Err(e);
+                            }
+                        }
+                    }
+                    CodecList::AES =>
+                    {
+                        match AESEncoder::decode(&subbuffer.to_vec(), Some(&keys[i_current_key]))
+                        {
+                            Ok(aes_decoded_data) =>
+                            {
+                                global_buffer = aes_decoded_data;
+                                current_byte = 0;
+                                i_current_key += 1;
+                            }
+                            Err(e) => 
+                            {
+                                eprintln!("An error occurred while decoding file with AES: {}", e);
                                 return Err(e);
                             }
                         }

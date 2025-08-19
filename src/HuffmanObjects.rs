@@ -4,7 +4,7 @@ use std::fmt;
 use std::io::{Cursor, Write, Read, Result, Seek, SeekFrom};
 
 use crate::Codec::CodecFunctions;
-use crate::DetHashMap;
+use crate::{DetHashMap, RZ_KEY_TYPE, KEY_LENGTH_BYTES, KEY_LENGTH_BITS};
 
 fn invert_codes(codes: &DetHashMap<u8, Vec<bool>>) -> DetHashMap<Vec<bool>, u8>
 {
@@ -372,7 +372,7 @@ impl HuffmanEncoder
 
 impl CodecFunctions for HuffmanEncoder
 {
-    fn encode(data: &Vec<u8>, _: Option<&i64>) -> std::io::Result<Vec<u8>>
+    fn encode(data: &Vec<u8>, _: Option<&RZ_KEY_TYPE>) -> std::io::Result<Vec<u8>>
     {
         let original_len = data.len();
         let frequencies: DetHashMap<u8, usize> = Self::obtain_frequencies(&data);
@@ -382,7 +382,7 @@ impl CodecFunctions for HuffmanEncoder
         return Self::write_to_buffer(&codes, &encoded_data, original_len);
     }
 
-    fn decode(encoded_data: &Vec<u8>, _: Option<&i64>) -> std::io::Result<Vec<u8>>
+    fn decode(encoded_data: &Vec<u8>, _: Option<&RZ_KEY_TYPE>) -> std::io::Result<Vec<u8>>
     {
         match Self::read_from_buffer(encoded_data)
         {

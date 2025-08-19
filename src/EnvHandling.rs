@@ -1,19 +1,27 @@
 use std::env;
 use std::fs::File;
-use std::io::{self, Read, BufReader, Write, BufWriter, Error, ErrorKind};
+use std::fs;
+use std::io::{Read, BufReader, Write, BufWriter, Error, ErrorKind};
 
 use crate::Codec::CodecList;
-use crate::DetHashMap;
+use crate::{DetHashMap, RZ_KEY_TYPE, KEY_LENGTH_BYTES, KEY_LENGTH_BITS};
 
 pub fn write_decoded_file(filename: &str, decoded_data: &[u8]) -> std::io::Result<()>
 {
-    let full_path = format!("{}.decoded", filename);
-    let mut file = File::create(full_path)?;
+    // Remove .rsz extension to restore original filename
+    let original_filename = if filename.ends_with(".rsz") { &filename[..filename.len() - 4] } 
+    else { filename };
+    
+    let mut file = File::create(original_filename)?;
     file.write_all(decoded_data);
+
+    // Remove .rsz file
+    if filename.ends_with(".rsz") { fs::remove_file(filename)?; }
+
     return Ok(());
 }
 
-pub fn write_encoded_file(filename: &str, buffer: &[u8], codecs: &[u8]) -> std::io::Result<(String)> 
+pub fn write_encoded_file(filename: &str, buffer: &[u8], codecs: &[u8]) -> std::io::Result<String> 
 {
     let full_path = format!("{}.rsz", filename);
     let mut file = BufWriter::new(File::create(&full_path)?);
@@ -34,7 +42,7 @@ pub fn write_encoded_file(filename: &str, buffer: &[u8], codecs: &[u8]) -> std::
     full_buffer.extend_from_slice(buffer);
 
     file.write_all(&full_buffer)?;
-    return Ok((full_path));
+    return Ok(full_path);
 }
 
 pub fn read_file(filename: &str) -> std::io::Result<(Vec<u8>, usize)>
@@ -53,7 +61,7 @@ pub fn validate_encoded_file(first_byte: u8) -> std::io::Result<()>
     return Ok(());
 }
 
-pub fn check_entry() -> Option<(String, String, Option<Vec<u8>>, Option<Vec<i64>>)> 
+pub fn check_entry() -> Option<(String, String, Option<Vec<u8>>, Option<Vec<RZ_KEY_TYPE>>)> 
 {
     let args: Vec<String> = env::args().collect();
 
@@ -62,7 +70,7 @@ pub fn check_entry() -> Option<(String, String, Option<Vec<u8>>, Option<Vec<i64>
         let mode: &String = &args[1];
         let filepath: &String = &args[args.len()-1];
 
-        let mut keys: Vec<i64> = Vec::new();
+        let mut keys: Vec<RZ_KEY_TYPE> = Vec::new();
 
         match mode.as_str()
         {
@@ -79,7 +87,12 @@ pub fn check_entry() -> Option<(String, String, Option<Vec<u8>>, Option<Vec<i64>
                 {
                     if key_needed
                     {
-                        let key: i64 = arg.parse().expect("Bad argument: expected number.");
+                        // Take up to 16 bytes and pack them into an i128 (big-endian)
+                        let key_bytes = arg.as_bytes();
+                        let mut arr = [0u8; 16];
+                        let n = key_bytes.len().min(16);
+                        arr[16 - n..].copy_from_slice(&key_bytes[..n]);
+                        let key: RZ_KEY_TYPE = i128::from_be_bytes(arr);
                         keys.push(key);
                         key_needed = false;
                         continue;
@@ -91,6 +104,11 @@ pub fn check_entry() -> Option<(String, String, Option<Vec<u8>>, Option<Vec<i64>
                         "--caesar" => 
                         { 
                             codecs.push(CodecList::Caesar as u8);
+                            key_needed = true;
+                        }
+                        "--aes" => 
+                        { 
+                            codecs.push(CodecList::AES as u8);
                             key_needed = true;
                         }
                         _ =>
@@ -106,7 +124,12 @@ pub fn check_entry() -> Option<(String, String, Option<Vec<u8>>, Option<Vec<i64>
             { 
                 for arg in &args[2..args.len()-1]
                 {
-                    let key: i64 = arg.parse().expect("Bad argument: expected number.");
+                    // Take up to 16 bytes and pack them into an i128 (big-endian)
+                    let key_bytes = arg.as_bytes();
+                    let mut arr = [0u8; 16];
+                    let n = key_bytes.len().min(16);
+                    arr[16 - n..].copy_from_slice(&key_bytes[..n]);
+                    let key: RZ_KEY_TYPE = i128::from_be_bytes(arr);
                     keys.push(key);
                 }
                 return Some((mode.clone(), filepath.clone(), None, Some(keys)));
